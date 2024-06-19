@@ -189,7 +189,7 @@ pub struct Bbox {
 pub struct Category {
     pub id: u32,
     pub name: String,
-    pub supercategory: String,
+    pub supercategory: Option<String>,
 }
 
 /// COCO dataset represented as a hashmap where the hashmap's keys are the ids.
