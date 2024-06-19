@@ -135,6 +135,7 @@ pub fn anns(
     img: &mut image::ImageBuffer<image::Rgb<u8>, Vec<u8>>,
     anns: &Vec<&object_detection::Annotation>,
     draw_bbox: bool,
+    draw_mask: bool,
 ) -> Result<(), MaskError> {
     let mut rng = rand::thread_rng();
     for ann in anns {
@@ -142,8 +143,10 @@ pub fn anns(
         if draw_bbox {
             self::bbox(img, &ann.bbox, color);
         }
-        let mask = mask::Mask::try_from(&ann.segmentation)?;
-        self::mask(img, &mask, color);
+        if draw_mask {
+            let mask = mask::Mask::try_from(&ann.segmentation)?;
+            self::mask(img, &mask, color);
+        }
     }
 
     Ok(())

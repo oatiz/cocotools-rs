@@ -18,7 +18,7 @@ pub fn img_anns(dataset: &BTreemapDataset, img_id: u64) -> Result<(), Box<dyn st
     let img_name = &dataset.get_img(img_id)?.file_name;
     let img_path = dataset.image_folder.join(img_name);
 
-    self::anns(&img_path, &anns, true)?;
+    self::anns(&img_path, &anns, true, false)?;
 
     Ok(())
 }
@@ -67,9 +67,10 @@ pub fn anns(
     img_path: &PathBuf,
     anns: &Vec<&Annotation>,
     draw_bbox: bool,
+    draw_mask: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut img = utils::load_img(img_path)?;
-    draw::anns(&mut img, anns, draw_bbox)?;
+    draw::anns(&mut img, anns, draw_bbox, draw_mask)?;
     self::img(
         &img,
         img_path

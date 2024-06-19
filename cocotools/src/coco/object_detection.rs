@@ -357,10 +357,11 @@ impl BTreemapDataset {
         &self,
         img_id: u64,
         draw_bbox: bool,
+        draw_mask: bool,
     ) -> Result<image::ImageBuffer<image::Rgb<u8>, Vec<u8>>, errors::CocoError> {
         let img_path = self.image_folder.join(&self.get_img(img_id)?.file_name);
         let mut img = load_img(&img_path)?;
-        draw::anns(&mut img, &self.get_img_anns(img_id)?, draw_bbox)?;
+        draw::anns(&mut img, &self.get_img_anns(img_id)?, draw_bbox, draw_mask)?;
         Ok(img)
     }
 
@@ -373,12 +374,13 @@ impl BTreemapDataset {
         &self,
         ann: &Annotation,
         draw_bbox: bool,
+        draw_mask: bool,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let img_path = self
             .image_folder
             .join(&self.get_img(ann.image_id)?.file_name);
         let mut img = load_img(&img_path)?;
-        draw::anns(&mut img, &vec![ann], draw_bbox)?;
+        draw::anns(&mut img, &vec![ann], draw_bbox, draw_mask)?;
         Ok(())
     }
 
