@@ -2,7 +2,6 @@ use std::iter::zip;
 
 use image;
 use imageproc::{drawing::draw_hollow_rect_mut, rect::Rect};
-use rand::Rng;
 
 use crate::coco::object_detection;
 use crate::errors::MaskError;
@@ -137,9 +136,8 @@ pub fn anns(
     draw_bbox: bool,
     draw_mask: bool,
 ) -> Result<(), MaskError> {
-    let mut rng = rand::thread_rng();
     for ann in anns {
-        let color = image::Rgb([rng.gen::<u8>(), rng.gen::<u8>(), rng.gen::<u8>()]);
+        let color = image::Rgb(get_color(ann.id as usize).into());
         if draw_bbox {
             self::bbox(img, &ann.bbox, color);
         }
@@ -186,4 +184,33 @@ impl ToBuffer for image::ImageBuffer<image::Rgb<u8>, Vec<u8>> {
         }
         buffer
     }
+}
+
+pub fn get_color(n: usize) -> (u8, u8, u8) {
+    color_palette()[n % color_palette().len()]
+}
+
+const fn color_palette() -> [(u8, u8, u8); 20] {
+    [
+        (0, 255, 127),   // spring green
+        (255, 105, 180), // hot pink
+        (255, 99, 71),   // tomato
+        (255, 215, 0),   // glod
+        (188, 143, 143), // rosy brown
+        (0, 191, 255),   // deep sky blue
+        (143, 188, 143), // dark sea green
+        (238, 130, 238), // violet
+        (154, 205, 50),  // yellow green
+        (205, 133, 63),  // peru
+        (30, 144, 255),  // dodger blue
+        (112, 128, 144), // slate gray
+        (127, 255, 212), // aqua marine
+        (51, 153, 255),  // blue
+        (0, 255, 255),   // cyan
+        (138, 43, 226),  // blue violet
+        (165, 42, 42),   // brown
+        (216, 191, 216), // thistle
+        (240, 255, 255), // azure
+        (95, 158, 160),  // cadet blue
+    ]
 }

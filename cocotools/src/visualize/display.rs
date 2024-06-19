@@ -1,7 +1,5 @@
 use std::path::PathBuf;
 
-extern crate image;
-extern crate minifb;
 use minifb::{Key, Window, WindowOptions};
 
 use super::draw::{self, ToBuffer};
