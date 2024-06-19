@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::BTreeMap, path::PathBuf};
 
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
@@ -196,17 +196,17 @@ pub struct Category {
 ///
 /// This struct provides methods to make working with the dataset easier and more efficient.
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
-pub struct HashmapDataset {
-    pub(crate) anns: HashMap<u64, Annotation>,
-    cats: HashMap<u32, Category>,
-    imgs: HashMap<u64, Image>,
+pub struct BTreemapDataset {
+    pub(crate) anns: BTreeMap<u64, Annotation>,
+    cats: BTreeMap<u32, Category>,
+    imgs: BTreeMap<u64, Image>,
     /// Hashmap that links an image id to the image's annotations
     // Use Rc to reference the annotations directly ?
-    img_to_anns: HashMap<u64, HashSet<u64>>,
+    img_to_anns: BTreeMap<u64, HashSet<u64>>,
     pub image_folder: PathBuf,
 }
 
-impl HashmapDataset {
+impl BTreemapDataset {
     /// Loads a COCO dataset from the annotation file and the image folder.
     ///
     /// # Errors
@@ -238,16 +238,16 @@ impl HashmapDataset {
             .map(|category| (category.id, category))
             .collect();
 
-        let imgs: HashMap<u64, Image> = dataset
+        let imgs: BTreeMap<u64, Image> = dataset
             .images
             .clone()
             .into_iter()
             .map(|image| (image.id, image))
             .collect();
 
-        let mut anns: HashMap<u64, Annotation> = HashMap::new();
+        let mut anns: BTreeMap<u64, Annotation> = BTreeMap::new();
         // Have (at least) an empty set for each image to avoid getting an error in the case where an image does not have any annotation.
-        let mut img_to_anns: HashMap<u64, HashSet<u64>> = dataset
+        let mut img_to_anns: BTreeMap<u64, HashSet<u64>> = dataset
             .images
             .into_iter()
             .map(|image| (image.id, HashSet::new()))
@@ -264,7 +264,7 @@ impl HashmapDataset {
                     size: if let Some(img) = imgs.get(&img_id) {
                         vec![img.height, img.width]
                     } else {
-                        return Err(MissingIdError::Image(img_id)).map_err(LoadingError::Parsing);
+                        return Err(LoadingError::Parsing(MissingIdError::Image(img_id)));
                     },
                     counts,
                 });
@@ -273,7 +273,7 @@ impl HashmapDataset {
             anns.insert(annotation.id, annotation);
             img_to_anns
                 .entry(img_id)
-                .or_insert_with(HashSet::new)
+                .or_default()
                 .insert(ann_id);
         }
 
@@ -408,8 +408,8 @@ impl HashmapDataset {
     }
 }
 
-impl From<&HashmapDataset> for Dataset {
-    fn from(dataset: &HashmapDataset) -> Self {
+impl From<&BTreemapDataset> for Dataset {
+    fn from(dataset: &BTreemapDataset) -> Self {
         Self {
             images: dataset.get_imgs().into_iter().cloned().collect(),
             annotations: dataset.get_anns().into_iter().cloned().collect(),

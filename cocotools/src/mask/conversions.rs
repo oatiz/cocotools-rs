@@ -22,7 +22,7 @@ pub enum Segmentation {
 ///
 /// Will return `Err` if the conversion failed.
 pub fn convert_coco_segmentation(
-    dataset: &mut object_detection::HashmapDataset,
+    dataset: &mut object_detection::BTreemapDataset,
     target_segmentation: Segmentation,
 ) -> Result<(), MaskError> {
     use object_detection::Segmentation::{CocoRle, Polygons, PolygonsRS, Rle};
