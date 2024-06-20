@@ -1,4 +1,5 @@
 //! Module containing the structs used to build a COCO format dataset.
+use core::fmt;
 use std::collections::HashSet;
 use std::error::Error;
 use std::fs;
@@ -7,7 +8,9 @@ use std::{collections::BTreeMap, path::PathBuf};
 
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
-use serde::{Deserialize, Serialize};
+use serde::de::{self, SeqAccess, Visitor};
+use serde::ser::SerializeTuple;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::errors::{self, LoadingError, MissingIdError};
 use crate::utils::load_img;
@@ -172,7 +175,7 @@ pub struct CocoRle {
         module = "rpycocotools.anns"
     )
 )]
-#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Bbox {
     pub left: f64,
     pub top: f64,
@@ -464,6 +467,51 @@ impl PartialEq for PolygonsRS {
         true
     }
 }
+
+impl Serialize for Bbox {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_tuple(4)?;
+        seq.serialize_element(&self.left)?;
+        seq.serialize_element(&self.top)?;
+        seq.serialize_element(&self.width)?;
+        seq.serialize_element(&self.height)?;
+        seq.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Bbox {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct BboxVisitor;
+
+        impl<'de> Visitor<'de> for BboxVisitor {
+            type Value = Bbox;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a tuple of four floats")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<Bbox, V::Error>
+            where
+                V: SeqAccess<'de>,
+            {
+                let left = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let top = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(1, &self))?;
+                let width = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(2, &self))?;
+                let height = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(3, &self))?;
+                Ok(Bbox { left, top, width, height })
+            }
+        }
+
+        deserializer.deserialize_tuple(4, BboxVisitor)
+    }
+}
+
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
