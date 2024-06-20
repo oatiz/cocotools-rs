@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::errors::{self, LoadingError, MissingIdError};
 use crate::utils::load_img;
-use crate::visualize::draw;
+use crate::visualize::draw::{self, DrawOption};
 
 /// COCO dataset as-is, without additionnal functionalities.
 #[derive(Clone, Debug, Default, PartialEq, Deserialize, Serialize)]
@@ -271,10 +271,7 @@ impl BTreemapDataset {
             };
 
             anns.insert(annotation.id, annotation);
-            img_to_anns
-                .entry(img_id)
-                .or_default()
-                .insert(ann_id);
+            img_to_anns.entry(img_id).or_default().insert(ann_id);
         }
 
         Ok(Self {
@@ -356,12 +353,11 @@ impl BTreemapDataset {
     pub fn draw_img_anns(
         &self,
         img_id: u64,
-        draw_bbox: bool,
-        draw_mask: bool,
+        draw_option: DrawOption,
     ) -> Result<image::ImageBuffer<image::Rgb<u8>, Vec<u8>>, errors::CocoError> {
         let img_path = self.image_folder.join(&self.get_img(img_id)?.file_name);
         let mut img = load_img(&img_path)?;
-        draw::anns(&mut img, &self.get_img_anns(img_id)?, draw_bbox, draw_mask)?;
+        draw::anns(&mut img, &self.get_img_anns(img_id)?, draw_option)?;
         Ok(img)
     }
 
@@ -373,14 +369,13 @@ impl BTreemapDataset {
     pub fn draw_ann(
         &self,
         ann: &Annotation,
-        draw_bbox: bool,
-        draw_mask: bool,
+        draw_option: DrawOption,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let img_path = self
             .image_folder
             .join(&self.get_img(ann.image_id)?.file_name);
         let mut img = load_img(&img_path)?;
-        draw::anns(&mut img, &vec![ann], draw_bbox, draw_mask)?;
+        draw::anns(&mut img, &vec![ann], draw_option)?;
         Ok(())
     }
 

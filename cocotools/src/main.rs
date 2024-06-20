@@ -2,6 +2,7 @@ use std::error;
 use std::path::PathBuf;
 
 use clap::Parser;
+use visualize::draw::DrawOption;
 
 mod argparse;
 mod coco;
@@ -23,12 +24,13 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             sample_id,
         } => {
             let dataset = COCO::new(annotations_file, image_folder)?;
+            let draw_option = DrawOption::default().with_bbox(true);
             if let Some(sample_id) = sample_id {
-                let img = dataset.draw_img_anns(*sample_id, true, true)?;
+                let img = dataset.draw_img_anns(*sample_id, draw_option)?;
                 display::img(&img, &dataset.get_img(*sample_id)?.file_name)?;
             } else {
                 for img_entry in dataset.get_imgs() {
-                    let img = dataset.draw_img_anns(img_entry.id, true, true)?;
+                    let img = dataset.draw_img_anns(img_entry.id, draw_option)?;
                     display::img(&img, &img_entry.file_name)?;
                 }
             }

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use minifb::{Key, Window, WindowOptions};
 
-use super::draw::{self, ToBuffer};
+use super::draw::{self, DrawOption, ToBuffer};
 use crate::coco::object_detection::{Annotation, BTreemapDataset};
 use crate::utils;
 
@@ -11,12 +11,12 @@ use crate::utils;
 /// # Errors
 ///
 /// Will return `Err` if `img_id` is not present in the dataset.
-pub fn img_anns(dataset: &BTreemapDataset, img_id: u64) -> Result<(), Box<dyn std::error::Error>> {
+pub fn img_anns(dataset: &BTreemapDataset, img_id: u64, draw_option: DrawOption) -> Result<(), Box<dyn std::error::Error>> {
     let anns = dataset.get_img_anns(img_id)?;
     let img_name = &dataset.get_img(img_id)?.file_name;
     let img_path = dataset.image_folder.join(img_name);
 
-    self::anns(&img_path, &anns, true, false)?;
+    self::anns(&img_path, &anns, draw_option)?;
 
     Ok(())
 }
@@ -64,11 +64,10 @@ pub fn img(
 pub fn anns(
     img_path: &PathBuf,
     anns: &Vec<&Annotation>,
-    draw_bbox: bool,
-    draw_mask: bool,
+    draw_option: DrawOption,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut img = utils::load_img(img_path)?;
-    draw::anns(&mut img, anns, draw_bbox, draw_mask)?;
+    draw::anns(&mut img, anns, draw_option)?;
     self::img(
         &img,
         img_path

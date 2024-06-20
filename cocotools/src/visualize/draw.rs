@@ -1,6 +1,6 @@
 use std::iter::zip;
 
-use image;
+use image::{self, Rgb};
 use imageproc::{drawing::draw_hollow_rect_mut, rect::Rect};
 
 use crate::coco::object_detection;
@@ -26,12 +26,23 @@ use crate::mask;
 /// draw::bbox(&mut img, &bbox, color);
 /// ```
 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-pub fn bbox(img: &mut image::RgbImage, bbox: &object_detection::Bbox, color: image::Rgb<u8>) {
+pub fn bbox(
+    img: &mut image::RgbImage,
+    bbox: &object_detection::Bbox,
+    draw_option: DrawOption,
+) {
     if bbox.width > 0.0 && bbox.height > 0.0 {
-        let rect = Rect::at(bbox.left as i32, bbox.top as i32)
-            .of_size(bbox.width as u32, bbox.height as u32);
-
-        draw_hollow_rect_mut(img, rect, color);
+        let (x, y, w, h) = (
+            bbox.left as i32,
+            bbox.top as i32,
+            bbox.width as i32,
+            bbox.height as i32,
+        );
+        for i in 0..draw_option.bbox_thickness {
+            let rect = Rect::at(x - (i as i32), y - (i as i32))
+                .of_size((w as u32) + 2 * i, (h as u32) + 2 * i);
+            draw_hollow_rect_mut(img, rect, draw_option.color);
+        }
     }
 }
 
@@ -133,17 +144,18 @@ pub fn mask(img: &mut image::RgbImage, mask: &mask::Mask, color: image::Rgb<u8>)
 pub fn anns(
     img: &mut image::ImageBuffer<image::Rgb<u8>, Vec<u8>>,
     anns: &Vec<&object_detection::Annotation>,
-    draw_bbox: bool,
-    draw_mask: bool,
+    mut draw_option: DrawOption,
 ) -> Result<(), MaskError> {
     for ann in anns {
         let color = image::Rgb(get_color(ann.id as usize).into());
-        if draw_bbox {
-            self::bbox(img, &ann.bbox, color);
+        draw_option = draw_option.color(color);
+
+        if draw_option.with_bbox {
+            self::bbox(img, &ann.bbox, draw_option);
         }
-        if draw_mask {
+        if draw_option.with_mask {
             let mask = mask::Mask::try_from(&ann.segmentation)?;
-            self::mask(img, &mask, color);
+            self::mask(img, &mask, draw_option.color);
         }
     }
 
@@ -183,6 +195,46 @@ impl ToBuffer for image::ImageBuffer<image::Rgb<u8>, Vec<u8>> {
             }
         }
         buffer
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct DrawOption {
+    pub with_bbox: bool,
+    pub with_mask: bool,
+    pub color: Rgb<u8>,
+    pub bbox_thickness: u32,
+}
+
+impl DrawOption {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_bbox(mut self, x: bool) -> Self {
+        self.with_bbox = x;
+        self
+    }
+
+    pub fn with_mask(mut self, x: bool) -> Self {
+        self.with_mask = x;
+        self
+    }
+
+    pub fn color(mut self, x: Rgb<u8>) -> Self {
+        self.color = x;
+        self
+    }
+
+    pub fn bbox_thickness(mut self, x: u32) -> Self {
+        self.bbox_thickness = x;
+        self
+    }
+}
+
+impl Default for DrawOption {
+    fn default() -> Self {
+        Self { color: image::Rgb(get_color(1).into()), bbox_thickness: 5, with_bbox: false, with_mask: false }
     }
 }
 
